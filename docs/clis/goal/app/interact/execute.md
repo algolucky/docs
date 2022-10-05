@@ -30,11 +30,13 @@ goal app interact execute [flags]
 
 ```
 
-      --app-id uint   Application ID (if omitted, zero, which creates an application)
+      --app-id uint     Application ID (if omitted, zero, which creates an application)
 
-  -f, --from string   Account to execute interaction from
+  -f, --from string     Account to execute interaction from
 
-  -h, --help          help for execute
+  -h, --help            help for execute
+
+  -S, --signer string   Address of key to sign with, if different from "from" address due to rekeying
 
 ```
 
@@ -47,8 +49,6 @@ goal app interact execute [flags]
 ```
 
       --app-account strings        Accounts that may be accessed from application logic
-
-      --app-arg stringArray        Args to encode for application transactions (all will be encoded to a byte slice). For ints, use the form 'int:1234'. For raw bytes, use the form 'b64:A=='. For printable strings, use the form 'str:hello'. For addresses, use the form 'addr:XYZ...'.
 
   -i, --app-input string           JSON file containing encoded arguments and inputs (mutually exclusive with app-arg-b64 and app-account)
 
