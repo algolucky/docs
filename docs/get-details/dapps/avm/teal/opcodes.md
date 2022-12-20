@@ -242,7 +242,7 @@ The notation J,K indicates that two uint64 values J and K are interpreted as a u
 
 ## intcblock uint ...
 
-- Opcode: 0x20 {varuint length} [{varuint value}, ...]
+- Opcode: 0x20 {varuint count} [{varuint value}, ...]
 - Stack: ... &rarr; ...
 - prepare block of uint64 constants for use by intc
 
@@ -280,7 +280,7 @@ The notation J,K indicates that two uint64 values J and K are interpreted as a u
 
 ## bytecblock bytes ...
 
-- Opcode: 0x26 {varuint length} [({varuint value length} bytes), ...]
+- Opcode: 0x26 {varuint count} [({varuint value length} bytes), ...]
 - Stack: ... &rarr; ...
 - prepare block of byte-array constants for use by bytec
 
@@ -364,7 +364,7 @@ The notation J,K indicates that two uint64 values J and K are interpreted as a u
 | 0 | Sender | []byte |      | 32 byte address |
 | 1 | Fee | uint64 |      | microalgos |
 | 2 | FirstValid | uint64 |      | round number |
-| 3 | FirstValidTime | uint64 |      | Causes program to fail; reserved for future use |
+| 3 | FirstValidTime | uint64 | v7  | UNIX timestamp of block before txn.FirstValid. Fails if negative |
 | 4 | LastValid | uint64 |      | round number |
 | 5 | Note | []byte |      | Any data up to 1024 bytes |
 | 6 | Lease | []byte |      | 32 byte lease value |
@@ -377,19 +377,17 @@ The notation J,K indicates that two uint64 values J and K are interpreted as a u
 | 13 | VoteLast | uint64 |      | The last round that the participation key is valid. |
 | 14 | VoteKeyDilution | uint64 |      | Dilution for the 2-level participation key |
 | 15 | Type | []byte |      | Transaction type as bytes |
-| 16 | TypeEnum | uint64 |      | See table below |
+| 16 | TypeEnum | uint64 |      | Transaction type as integer |
 | 17 | XferAsset | uint64 |      | Asset ID |
 | 18 | AssetAmount | uint64 |      | value in Asset's units |
-| 19 | AssetSender | []byte |      | 32 byte address. Moves asset from AssetSender if Sender is the Clawback address of the asset. |
+| 19 | AssetSender | []byte |      | 32 byte address. Source of assets if Sender is the Asset's Clawback address. |
 | 20 | AssetReceiver | []byte |      | 32 byte address |
 | 21 | AssetCloseTo | []byte |      | 32 byte address |
 | 22 | GroupIndex | uint64 |      | Position of this transaction within an atomic transaction group. A stand-alone transaction is implicitly element 0 in a group of 1 |
 | 23 | TxID | []byte |      | The computed ID for this transaction. 32 bytes. |
 | 24 | ApplicationID | uint64 | v2  | ApplicationID from ApplicationCall transaction |
 | 25 | OnCompletion | uint64 | v2  | ApplicationCall transaction on completion action |
-| 26 | ApplicationArgs | []byte | v2  | Arguments passed to the application in the ApplicationCall transaction |
 | 27 | NumAppArgs | uint64 | v2  | Number of ApplicationArgs |
-| 28 | Accounts | []byte | v2  | Accounts listed in the ApplicationCall transaction |
 | 29 | NumAccounts | uint64 | v2  | Number of Accounts |
 | 30 | ApprovalProgram | []byte | v2  | Approval program |
 | 31 | ClearStateProgram | []byte | v2  | Clear state program |
@@ -409,9 +407,7 @@ The notation J,K indicates that two uint64 values J and K are interpreted as a u
 | 45 | FreezeAsset | uint64 | v2  | Asset ID being frozen or un-frozen |
 | 46 | FreezeAssetAccount | []byte | v2  | 32 byte address of the account whose asset slot is being frozen or un-frozen |
 | 47 | FreezeAssetFrozen | uint64 | v2  | The new frozen value, 0 or 1 |
-| 48 | Assets | uint64 | v3  | Foreign Assets listed in the ApplicationCall transaction |
 | 49 | NumAssets | uint64 | v3  | Number of Assets |
-| 50 | Applications | uint64 | v3  | Foreign Apps listed in the ApplicationCall transaction |
 | 51 | NumApplications | uint64 | v3  | Number of Applications |
 | 52 | GlobalNumUint | uint64 | v3  | Number of global state integers in ApplicationCall |
 | 53 | GlobalNumByteSlice | uint64 | v3  | Number of global state byteslices in ApplicationCall |
@@ -419,15 +415,14 @@ The notation J,K indicates that two uint64 values J and K are interpreted as a u
 | 55 | LocalNumByteSlice | uint64 | v3  | Number of local state byteslices in ApplicationCall |
 | 56 | ExtraProgramPages | uint64 | v4  | Number of additional pages for each of the application's approval and clear state programs. An ExtraProgramPages of 1 means 2048 more total bytes, or 1024 for each program. |
 | 57 | Nonparticipation | uint64 | v5  | Marks an account nonparticipating for rewards |
-| 58 | Logs | []byte | v5  | Log messages emitted by an application call (only with `itxn` in v5). Application mode only |
 | 59 | NumLogs | uint64 | v5  | Number of Logs (only with `itxn` in v5). Application mode only |
 | 60 | CreatedAssetID | uint64 | v5  | Asset ID allocated by the creation of an ASA (only with `itxn` in v5). Application mode only |
 | 61 | CreatedApplicationID | uint64 | v5  | ApplicationID allocated by the creation of an application (only with `itxn` in v5). Application mode only |
 | 62 | LastLog | []byte | v6  | The last message emitted. Empty bytes if none were emitted. Application mode only |
-| 63 | StateProofPK | []byte | v6  | 64 byte state proof public key commitment |
+| 63 | StateProofPK | []byte | v6  | 64 byte state proof public key |
+| 65 | NumApprovalProgramPages | uint64 | v7  | Number of Approval Program pages |
+| 67 | NumClearStateProgramPages | uint64 | v7  | Number of ClearState Program pages |
 
-
-FirstValidTime causes the program to fail. The field is reserved for future use.
 
 ## global f
 
@@ -480,14 +475,27 @@ for notes on transaction fields available, see `txn`. If this transaction is _i_
 
 - Opcode: 0x36 {uint8 transaction field index} {uint8 transaction field array index}
 - Stack: ... &rarr; ..., any
-- Ith value of the array field F of the current transaction
+- Ith value of the array field F of the current transaction<br />`txna` can be called using `txn` with 2 immediates.
 - Availability: v2
+
+`txna` Fields (see [transaction reference](https://developer.algorand.org/docs/reference/transactions/)):
+
+| Index | Name | Type | In | Notes |
+| - | ------ | -- | - | --------- |
+| 26 | ApplicationArgs | []byte | v2  | Arguments passed to the application in the ApplicationCall transaction |
+| 28 | Accounts | []byte | v2  | Accounts listed in the ApplicationCall transaction |
+| 48 | Assets | uint64 | v3  | Foreign Assets listed in the ApplicationCall transaction |
+| 50 | Applications | uint64 | v3  | Foreign Apps listed in the ApplicationCall transaction |
+| 58 | Logs | []byte | v5  | Log messages emitted by an application call (only with `itxn` in v5). Application mode only |
+| 64 | ApprovalProgramPages | []byte | v7  | Approval Program as an array of pages |
+| 66 | ClearStateProgramPages | []byte | v7  | ClearState Program as an array of pages |
+
 
 ## gtxna t f i
 
 - Opcode: 0x37 {uint8 transaction group index} {uint8 transaction field index} {uint8 transaction field array index}
 - Stack: ... &rarr; ..., any
-- Ith value of the array field F from the Tth transaction in the current group
+- Ith value of the array field F from the Tth transaction in the current group<br />`gtxna` can be called using `gtxn` with 3 immediates.
 - Availability: v2
 
 ## gtxns f
@@ -503,7 +511,7 @@ for notes on transaction fields available, see `txn`. If top of stack is _i_, `g
 
 - Opcode: 0x39 {uint8 transaction field index} {uint8 transaction field array index}
 - Stack: ..., A: uint64 &rarr; ..., any
-- Ith value of the array field F from the Ath transaction in the current group
+- Ith value of the array field F from the Ath transaction in the current group<br />`gtxnsa` can be called using `gtxns` with 2 immediates.
 - Availability: v3
 
 ## gload t i
@@ -601,6 +609,27 @@ See `bnz` for details on how branches work. `b` always jumps to the offset.
 - Stack: ..., A: uint64 &rarr; ...
 - immediately fail unless A is a non-zero number
 - Availability: v3
+
+## bury n
+
+- Opcode: 0x45 {uint8 depth}
+- Stack: ..., A &rarr; ...
+- replace the Nth value from the top of the stack with A. bury 0 fails.
+- Availability: v8
+
+## popn n
+
+- Opcode: 0x46 {uint8 stack depth}
+- Stack: ..., [N items] &rarr; ...
+- remove N values from the top of the stack
+- Availability: v8
+
+## dupn n
+
+- Opcode: 0x47 {uint8 copy count}
+- Stack: ..., A &rarr; ..., A, [N copies of A]
+- duplicate A, N times
+- Availability: v8
 
 ## pop
 
@@ -722,7 +751,7 @@ When A is a uint64, index 0 is the least significant bit. Setting bit 3 to 1 on 
 
 - Opcode: 0x58
 - Stack: ..., A: []byte, B: uint64, C: uint64 &rarr; ..., []byte
-- A range of bytes from A starting at B up to but not including B+C. If B+C is larger than the array length, the program fails
+- A range of bytes from A starting at B up to but not including B+C. If B+C is larger than the array length, the program fails<br />`extract3` can be called using `extract` with no immediates.
 - Availability: v5
 
 ## extract_uint16
@@ -750,14 +779,14 @@ When A is a uint64, index 0 is the least significant bit. Setting bit 3 to 1 on 
 
 - Opcode: 0x5c {uint8 start position}
 - Stack: ..., A: []byte, B: []byte &rarr; ..., []byte
-- Copy of A with the bytes starting at S replaced by the bytes of B. Fails if S+len(B) exceeds len(A)
+- Copy of A with the bytes starting at S replaced by the bytes of B. Fails if S+len(B) exceeds len(A)<br />`replace2` can be called using `replace` with 1 immediate.
 - Availability: v7
 
 ## replace3
 
 - Opcode: 0x5d
 - Stack: ..., A: []byte, B: uint64, C: []byte &rarr; ..., []byte
-- Copy of A with the bytes starting at B replaced by the bytes of C. Fails if B+len(C) exceeds len(A)
+- Copy of A with the bytes starting at B replaced by the bytes of C. Fails if B+len(C) exceeds len(A)<br />`replace3` can be called using `replace` with no immediates.
 - Availability: v7
 
 ## base64_decode e
@@ -776,13 +805,15 @@ When A is a uint64, index 0 is the least significant bit. Setting bit 3 to 1 on 
 | 1 | StdEncoding |  |
 
 
-Decodes A using the base64 encoding E. Specify the encoding with an immediate arg either as URL and Filename Safe (`URLEncoding`) or Standard (`StdEncoding`). See <a href="https://rfc-editor.org/rfc/rfc4648.html#section-4">RFC 4648</a> (sections 4 and 5). It is assumed that the encoding ends with the exact number of `=` padding characters as required by the RFC. When padding occurs, any unused pad bits in the encoding must be set to zero or the decoding will fail. The special cases of `\n` and `\r` are allowed but completely ignored. An error will result when attempting to decode a string with a character that is not in the encoding alphabet or not one of `=`, `\r`, or `\n`.
+*Warning*: Usage should be restricted to very rare use cases. In almost all cases, smart contracts should directly handle non-encoded byte-strings.	This opcode should only be used in cases where base64 is the only available option, e.g. interoperability with a third-party that only signs base64 strings.
+
+ Decodes A using the base64 encoding E. Specify the encoding with an immediate arg either as URL and Filename Safe (`URLEncoding`) or Standard (`StdEncoding`). See [RFC 4648 sections 4 and 5](https://rfc-editor.org/rfc/rfc4648.html#section-4). It is assumed that the encoding ends with the exact number of `=` padding characters as required by the RFC. When padding occurs, any unused pad bits in the encoding must be set to zero or the decoding will fail. The special cases of `\n` and `\r` are allowed but completely ignored. An error will result when attempting to decode a string with a character that is not in the encoding alphabet or not one of `=`, `\r`, or `\n`.
 
 ## json_ref r
 
-- Opcode: 0x5f {string return type}
+- Opcode: 0x5f {uint8 return type}
 - Stack: ..., A: []byte, B: []byte &rarr; ..., any
-- return key B's value from a [valid](jsonspec.md) utf-8 encoded json object A
+- key B's value, of type R, from a [valid](jsonspec.md) utf-8 encoded json object A
 - **Cost**: 25 + 2 per 7 bytes of A
 - Availability: v7
 
@@ -795,13 +826,15 @@ Decodes A using the base64 encoding E. Specify the encoding with an immediate ar
 | 2 | JSONObject | []byte |  |
 
 
-specify the return type with an immediate arg either as JSONUint64 or JSONString or JSONObject.
+*Warning*: Usage should be restricted to very rare use cases, as JSON decoding is expensive and quite limited. In addition, JSON objects are large and not optimized for size.
+
+Almost all smart contracts should use simpler and smaller methods (such as the [ABI](https://arc.algorand.foundation/ARCs/arc-0004). This opcode should only be used in cases where JSON is only available option, e.g. when a third-party only signs JSON.
 
 ## balance
 
 - Opcode: 0x60
 - Stack: ..., A &rarr; ..., uint64
-- get balance for account A, in microalgos. The balance is observed after the effects of previous transactions in the group, and after the fee for the current transaction is deducted.
+- balance for account A, in microalgos. The balance is observed after the effects of previous transactions in the group, and after the fee for the current transaction is deducted. Changes caused by inner transactions are observable immediately following `itxn_submit`
 - Availability: v2
 - Mode: Application
 
@@ -980,18 +1013,27 @@ params: Txn.ForeignApps offset or an _available_ app id. Return: did_exist flag 
 
 `acct_params` Fields:
 
-| Index | Name | Type | Notes |
-| - | ------ | -- | --------- |
-| 0 | AcctBalance | uint64 | Account balance in microalgos |
-| 1 | AcctMinBalance | uint64 | Minimum required blance for account, in microalgos |
-| 2 | AcctAuthAddr | []byte | Address the account is rekeyed to. |
+| Index | Name | Type | In | Notes |
+| - | ------ | -- | - | --------- |
+| 0 | AcctBalance | uint64 |      | Account balance in microalgos |
+| 1 | AcctMinBalance | uint64 |      | Minimum required balance for account, in microalgos |
+| 2 | AcctAuthAddr | []byte |      | Address the account is rekeyed to. |
+| 3 | AcctTotalNumUint | uint64 | v8  | The total number of uint64 values allocated by this account in Global and Local States. |
+| 4 | AcctTotalNumByteSlice | uint64 | v8  | The total number of byte array values allocated by this account in Global and Local States. |
+| 5 | AcctTotalExtraAppPages | uint64 | v8  | The number of extra app code pages used by this account. |
+| 6 | AcctTotalAppsCreated | uint64 | v8  | The number of existing apps created by this account. |
+| 7 | AcctTotalAppsOptedIn | uint64 | v8  | The number of apps this account is opted into. |
+| 8 | AcctTotalAssetsCreated | uint64 | v8  | The number of existing ASAs created by this account. |
+| 9 | AcctTotalAssets | uint64 | v8  | The numbers of ASAs held by this account (including ASAs this account created). |
+| 10 | AcctTotalBoxes | uint64 | v8  | The number of existing boxes created by this account's app. |
+| 11 | AcctTotalBoxBytes | uint64 | v8  | The total number of bytes used by this account's app's box keys and values. |
 
 
 ## min_balance
 
 - Opcode: 0x78
 - Stack: ..., A &rarr; ..., uint64
-- get minimum required balance for account A, in microalgos. Required balance is affected by [ASA](https://developer.algorand.org/docs/features/asa/#assets-overview) and [App](https://developer.algorand.org/docs/features/asc1/stateful/#minimum-balance-requirement-for-a-smart-contract) usage. When creating or opting into an app, the minimum balance grows before the app code runs, therefore the increase is visible there. When deleting or closing out, the minimum balance decreases after the app executes.
+- minimum required balance for account A, in microalgos. Required balance is affected by ASA, App, and Box usage. When creating or opting into an app, the minimum balance grows before the app code runs, therefore the increase is visible there. When deleting or closing out, the minimum balance decreases after the app executes. Changes caused by inner transactions or box usage are observable immediately following the opcode effecting the change.
 - Availability: v3
 - Mode: Application
 
@@ -1015,6 +1057,24 @@ pushbytes args are not added to the bytecblock during assembly processes
 
 pushint args are not added to the intcblock during assembly processes
 
+## pushbytess bytes ...
+
+- Opcode: 0x82 {varuint count} [({varuint value length} bytes), ...]
+- Stack: ... &rarr; ..., [N items]
+- push sequences of immediate byte arrays to stack (first byte array being deepest)
+- Availability: v8
+
+pushbytess args are not added to the bytecblock during assembly processes
+
+## pushints uint ...
+
+- Opcode: 0x83 {varuint count} [{varuint value}, ...]
+- Stack: ... &rarr; ..., [N items]
+- push sequence of immediate uints to stack in the order they appear (first uint being deepest)
+- Availability: v8
+
+pushints args are not added to the intcblock during assembly processes
+
 ## ed25519verify_bare
 
 - Opcode: 0x84
@@ -1030,7 +1090,7 @@ pushint args are not added to the intcblock during assembly processes
 - branch unconditionally to TARGET, saving the next instruction on the call stack
 - Availability: v4
 
-The call stack is separate from the data stack. Only `callsub` and `retsub` manipulate it.
+The call stack is separate from the data stack. Only `callsub`, `retsub`, and `proto` manipulate it.
 
 ## retsub
 
@@ -1039,7 +1099,46 @@ The call stack is separate from the data stack. Only `callsub` and `retsub` mani
 - pop the top instruction from the call stack and branch to it
 - Availability: v4
 
-The call stack is separate from the data stack. Only `callsub` and `retsub` manipulate it.
+If the current frame was prepared by `proto A R`, `retsub` will remove the 'A' arguments from the stack, move the `R` return values down, and pop any stack locations above the relocated return values.
+
+## proto a r
+
+- Opcode: 0x8a {uint8 arguments} {uint8 return values}
+- Stack: ... &rarr; ...
+- Prepare top call frame for a retsub that will assume A args and R return values.
+- Availability: v8
+
+Fails unless the last instruction executed was a `callsub`.
+
+## frame_dig i
+
+- Opcode: 0x8b {int8 frame slot}
+- Stack: ... &rarr; ..., any
+- Nth (signed) value from the frame pointer.
+- Availability: v8
+
+## frame_bury i
+
+- Opcode: 0x8c {int8 frame slot}
+- Stack: ..., A &rarr; ...
+- replace the Nth (signed) value from the frame pointer in the stack with A
+- Availability: v8
+
+## switch target ...
+
+- Opcode: 0x8d {uint8 branch count} [{int16 branch offset, big-endian}, ...]
+- Stack: ..., A: uint64 &rarr; ...
+- branch to the Ath label. Continue at following instruction if index A exceeds the number of labels.
+- Availability: v8
+
+## match target ...
+
+- Opcode: 0x8e {uint8 branch count} [{int16 branch offset, big-endian}, ...]
+- Stack: ..., [A1, A2, ..., AN], B &rarr; ...
+- given match cases from A[1] to A[N], branch to the Ith label where A[I] = B. Continue to the following instruction if no matches are found.
+- Availability: v8
+
+`match` consumes N+1 values from the stack. Let the top stack value be B. The following N values represent an ordered list of match cases/constants (A), where the first value (A[0]) is the deepest in the stack. The immediate arguments are an ordered list of N labels (T). `match` will branch to target T[I], where A[I] = B. If there are no matches then execution continues on to the next instruction.
 
 ## shl
 
@@ -1111,36 +1210,6 @@ The notation A,B indicates that A and B are interpreted as a uint128 value, with
 - SHA3_256 hash of value A, yields [32]byte
 - **Cost**: 130
 - Availability: v7
-
-## bn256_add
-
-- Opcode: 0x99
-- Stack: ..., A: []byte, B: []byte &rarr; ..., []byte
-- for (curve points A and B) return the curve point A + B
-- **Cost**: 70
-- Availability: v7
-
-A, B are curve points in G1 group. Each point consists of (X, Y) where X and Y are 256 bit integers, big-endian encoded. The encoded point is 64 bytes from concatenation of 32 byte X and 32 byte Y.
-
-## bn256_scalar_mul
-
-- Opcode: 0x9a
-- Stack: ..., A: []byte, B: []byte &rarr; ..., []byte
-- for (curve point A, scalar K) return the curve point KA
-- **Cost**: 970
-- Availability: v7
-
-A is a curve point in G1 Group and encoded as described in `bn256_add`. Scalar K is a big-endian encoded big integer that has no padding zeros.
-
-## bn256_pairing
-
-- Opcode: 0x9b
-- Stack: ..., A: []byte, B: []byte &rarr; ..., uint64
-- for (points in G1 group G1s, points in G2 group G2s), return whether they are paired => {0 or 1}
-- **Cost**: 8700
-- Availability: v7
-
-G1s are encoded by the concatenation of encoded G1 points, as described in `bn256_add`. G2s are encoded by the concatenation of encoded G2 points. Each G2 is in form (XA0+i*XA1, YA0+i*YA1) and encoded by big-endian field element XA0, XA1, YA0 and YA1 in sequence.
 
 ## b+
 
@@ -1345,6 +1414,68 @@ G1s are encoded by the concatenation of encoded G1 points, as described in `bn25
 - Availability: v6
 - Mode: Application
 
+## box_create
+
+- Opcode: 0xb9
+- Stack: ..., A: []byte, B: uint64 &rarr; ..., uint64
+- create a box named A, of length B. Fail if A is empty or B exceeds 32,768. Returns 0 if A already existed, else 1
+- Availability: v8
+- Mode: Application
+
+Newly created boxes are filled with 0 bytes. `box_create` will fail if the referenced box already exists with a different size. Otherwise, existing boxes are unchanged by `box_create`.
+
+## box_extract
+
+- Opcode: 0xba
+- Stack: ..., A: []byte, B: uint64, C: uint64 &rarr; ..., []byte
+- read C bytes from box A, starting at offset B. Fail if A does not exist, or the byte range is outside A's size.
+- Availability: v8
+- Mode: Application
+
+## box_replace
+
+- Opcode: 0xbb
+- Stack: ..., A: []byte, B: uint64, C: []byte &rarr; ...
+- write byte-array C into box A, starting at offset B. Fail if A does not exist, or the byte range is outside A's size.
+- Availability: v8
+- Mode: Application
+
+## box_del
+
+- Opcode: 0xbc
+- Stack: ..., A: []byte &rarr; ..., uint64
+- delete box named A if it exists. Return 1 if A existed, 0 otherwise
+- Availability: v8
+- Mode: Application
+
+## box_len
+
+- Opcode: 0xbd
+- Stack: ..., A: []byte &rarr; ..., X: uint64, Y: uint64
+- X is the length of box A if A exists, else 0. Y is 1 if A exists, else 0.
+- Availability: v8
+- Mode: Application
+
+## box_get
+
+- Opcode: 0xbe
+- Stack: ..., A: []byte &rarr; ..., X: []byte, Y: uint64
+- X is the contents of box A if A exists, else ''. Y is 1 if A exists, else 0.
+- Availability: v8
+- Mode: Application
+
+For boxes that exceed 4,096 bytes, consider `box_create`, `box_extract`, and `box_replace`
+
+## box_put
+
+- Opcode: 0xbf
+- Stack: ..., A: []byte, B: []byte &rarr; ...
+- replaces the contents of box A with byte-array B. Fails if A exists and len(B) != len(box A). Creates A if it does not exist
+- Availability: v8
+- Mode: Application
+
+For boxes that exceed 4,096 bytes, consider `box_create`, `box_extract`, and `box_replace`
+
 ## txnas f
 
 - Opcode: 0xc0 {uint8 transaction field index}
@@ -1397,3 +1528,35 @@ G1s are encoded by the concatenation of encoded G1 points, as described in `bn25
 - Ath value of the array field F from the Tth transaction in the last inner group submitted
 - Availability: v6
 - Mode: Application
+
+## vrf_verify s
+
+- Opcode: 0xd0 {uint8 parameters index}
+- Stack: ..., A: []byte, B: []byte, C: []byte &rarr; ..., X: []byte, Y: uint64
+- Verify the proof B of message A against pubkey C. Returns vrf output and verification flag.
+- **Cost**: 5700
+- Availability: v7
+
+`vrf_verify` Standards:
+
+| Index | Name | Notes |
+| - | ------ | --------- |
+| 0 | VrfAlgorand |  |
+
+
+`VrfAlgorand` is the VRF used in Algorand. It is ECVRF-ED25519-SHA512-Elligator2, specified in the IETF internet draft [draft-irtf-cfrg-vrf-03](https://datatracker.ietf.org/doc/draft-irtf-cfrg-vrf/03/).
+
+## block f
+
+- Opcode: 0xd1 {uint8 block field}
+- Stack: ..., A: uint64 &rarr; ..., any
+- field F of block A. Fail unless A falls between txn.LastValid-1002 and txn.FirstValid (exclusive)
+- Availability: v7
+
+`block` Fields:
+
+| Index | Name | Type | Notes |
+| - | ------ | -- | --------- |
+| 0 | BlkSeed | []byte |  |
+| 1 | BlkTimestamp | uint64 |  |
+
