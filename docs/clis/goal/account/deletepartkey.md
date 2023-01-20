@@ -1,10 +1,10 @@
-title: goal account listpartkeys
+title: goal account deletepartkey
 ---
-## goal account listpartkeys
+## goal account deletepartkey
 
 
 
-List participation keys summary
+Delete a participation key
 
 
 
@@ -12,13 +12,13 @@ List participation keys summary
 
 
 
-List all participation keys tracked by algod along with summary of additional information. For detailed key information use 'partkeyinfo'.
+Delete the indicated participation key.
 
 
 
 ```
 
-goal account listpartkeys [flags]
+goal account deletepartkey [flags]
 
 ```
 
@@ -30,7 +30,9 @@ goal account listpartkeys [flags]
 
 ```
 
-  -h, --help   help for listpartkeys
+  -h, --help               help for deletepartkey
+
+      --partkeyid string   Participation Key ID to delete
 
 ```
 
