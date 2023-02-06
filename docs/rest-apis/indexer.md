@@ -50,7 +50,7 @@ Search for accounts.
 |**Query**|**include-all**  <br>*optional*|Include all items including closed accounts, deleted applications, destroyed assets, opted-out asset holdings, and closed-out application localstates.|boolean|
 |**Query**|**limit**  <br>*optional*|Maximum number of results to return. There could be additional pages even if the limit is not reached.|integer|
 |**Query**|**next**  <br>*optional*|The next page of results. Use the next token provided by the previous results.|string|
-|**Query**|**round**  <br>*optional*|Include results for the specified round. For performance reasons, this parameter may be disabled on some configurations.|integer|
+|**Query**|**round**  <br>*optional*|Include results for the specified round. For performance reasons, this parameter may be disabled on some configurations. Using application-id or asset-id filters will return both creator and opt-in accounts. Filtering by include-all will return creator and opt-in accounts for deleted assets and accounts. Non-opt-in managers are not included in the results when asset-id is used.|integer|
 
 
 **Responses**
@@ -505,7 +505,7 @@ Lookup account transactions. Transactions are returned newest to oldest.
 |**Query**|**rekey-to**  <br>*optional*|Include results which include the rekey-to field.|boolean|
 |**Query**|**round**  <br>*optional*|Include results for the specified round.|integer|
 |**Query**|**sig-type**  <br>*optional*|SigType filters just results using the specified type of signature:<br>* sig - Standard<br>* msig - MultiSig<br>* lsig - LogicSig|enum (sig, msig, lsig)|
-|**Query**|**tx-type**  <br>*optional*||enum (pay, keyreg, acfg, axfer, afrz, appl)|
+|**Query**|**tx-type**  <br>*optional*||enum (pay, keyreg, acfg, axfer, afrz, appl, stpf)|
 |**Query**|**txid**  <br>*optional*|Lookup the specific transaction by ID.|string|
 
 
@@ -677,6 +677,154 @@ Lookup application.
 **Tags**
 
 * lookup
+
+
+<a name="lookupapplicationboxbyidandname"></a>
+### GET /v2/applications/{application-id}/box
+Get box information for a given application.
+```
+GET /v2/applications/{application-id}/box
+```
+
+
+**Description**
+Given an application ID and box name, returns base64 encoded box name and value. Box names must be in the goal app call arg form 'encoding:value'. For ints, use the form 'int:1234'. For raw bytes, encode base 64 and use 'b64' prefix as in 'b64:A=='. For printable strings, use the form 'str:hello'. For addresses, use the form 'addr:XYZ...'.
+
+
+**Parameters**
+
+|Type|Name|Description|Schema|
+|---|---|---|---|
+|**Path**|**application-id**  <br>*required*||integer|
+|**Query**|**name**  <br>*required*|A box name in goal-arg form 'encoding:value'. For ints, use the form 'int:1234'. For raw bytes, use the form 'b64:A=='. For printable strings, use the form 'str:hello'. For addresses, use the form 'addr:XYZ...'.|string|
+
+
+**Responses**
+
+|HTTP Code|Description|Schema|
+|---|---|---|
+|**200**|Box information|[Box](#box)|
+|**400**|Response for errors|[Response 400](#lookupapplicationboxbyidandname-response-400)|
+|**404**|Response for errors|[Response 404](#lookupapplicationboxbyidandname-response-404)|
+|**500**|Response for errors|[Response 500](#lookupapplicationboxbyidandname-response-500)|
+
+<a name="lookupapplicationboxbyidandname-response-400"></a>
+**Response 400**
+
+|Name|Schema|
+|---|---|
+|**data**  <br>*optional*|object|
+|**message**  <br>*required*|string|
+
+<a name="lookupapplicationboxbyidandname-response-404"></a>
+**Response 404**
+
+|Name|Schema|
+|---|---|
+|**data**  <br>*optional*|object|
+|**message**  <br>*required*|string|
+
+<a name="lookupapplicationboxbyidandname-response-500"></a>
+**Response 500**
+
+|Name|Schema|
+|---|---|
+|**data**  <br>*optional*|object|
+|**message**  <br>*required*|string|
+
+
+**Consumes**
+
+* `application/json`
+
+
+**Produces**
+
+* `application/json`
+
+
+**Tags**
+
+* lookup
+
+
+<a name="searchforapplicationboxes"></a>
+### GET /v2/applications/{application-id}/boxes
+Get box names for a given application.
+```
+GET /v2/applications/{application-id}/boxes
+```
+
+
+**Description**
+Given an application ID, returns the box names of that application sorted lexicographically.
+
+
+**Parameters**
+
+|Type|Name|Description|Schema|
+|---|---|---|---|
+|**Path**|**application-id**  <br>*required*||integer|
+|**Query**|**limit**  <br>*optional*|Maximum number of results to return. There could be additional pages even if the limit is not reached.|integer|
+|**Query**|**next**  <br>*optional*|The next page of results. Use the next token provided by the previous results.|string|
+
+
+**Responses**
+
+|HTTP Code|Description|Schema|
+|---|---|---|
+|**200**|Box names of an application|[Response 200](#searchforapplicationboxes-response-200)|
+|**400**|Response for errors|[Response 400](#searchforapplicationboxes-response-400)|
+|**404**|Response for errors|[Response 404](#searchforapplicationboxes-response-404)|
+|**500**|Response for errors|[Response 500](#searchforapplicationboxes-response-500)|
+
+<a name="searchforapplicationboxes-response-200"></a>
+**Response 200**
+
+|Name|Description|Schema|
+|---|---|---|
+|**application-id**  <br>*required*|\[appidx\] application index.|integer|
+|**boxes**  <br>*required*||< [BoxDescriptor](#boxdescriptor) > array|
+|**next-token**  <br>*optional*|Used for pagination, when making another request provide this token with the next parameter.|string|
+
+<a name="searchforapplicationboxes-response-400"></a>
+**Response 400**
+
+|Name|Schema|
+|---|---|
+|**data**  <br>*optional*|object|
+|**message**  <br>*required*|string|
+
+<a name="searchforapplicationboxes-response-404"></a>
+**Response 404**
+
+|Name|Schema|
+|---|---|
+|**data**  <br>*optional*|object|
+|**message**  <br>*required*|string|
+
+<a name="searchforapplicationboxes-response-500"></a>
+**Response 500**
+
+|Name|Schema|
+|---|---|
+|**data**  <br>*optional*|object|
+|**message**  <br>*required*|string|
+
+
+**Consumes**
+
+* `application/json`
+
+
+**Produces**
+
+* `application/json`
+
+
+**Tags**
+
+* search
 
 
 <a name="lookupapplicationlogsbyid"></a>
@@ -967,7 +1115,7 @@ Lookup transactions for an asset. Transactions are returned oldest to newest.
 |**Query**|**rekey-to**  <br>*optional*|Include results which include the rekey-to field.|boolean|
 |**Query**|**round**  <br>*optional*|Include results for the specified round.|integer|
 |**Query**|**sig-type**  <br>*optional*|SigType filters just results using the specified type of signature:<br>* sig - Standard<br>* msig - MultiSig<br>* lsig - LogicSig|enum (sig, msig, lsig)|
-|**Query**|**tx-type**  <br>*optional*||enum (pay, keyreg, acfg, axfer, afrz, appl)|
+|**Query**|**tx-type**  <br>*optional*||enum (pay, keyreg, acfg, axfer, afrz, appl, stpf)|
 |**Query**|**txid**  <br>*optional*|Lookup the specific transaction by ID.|string|
 
 
@@ -1032,6 +1180,7 @@ Lookup block.
 |Type|Name|Description|Schema|
 |---|---|---|---|
 |**Path**|**round-number**  <br>*required*|Round number|integer|
+|**Query**|**header-only**  <br>*optional*|Header only flag. When this is set to true, returned block does not contain the transactions|boolean|
 
 
 **Responses**
@@ -1102,7 +1251,7 @@ Search for transactions. Transactions are returned oldest to newest unless the a
 |**Query**|**rekey-to**  <br>*optional*|Include results which include the rekey-to field.|boolean|
 |**Query**|**round**  <br>*optional*|Include results for the specified round.|integer|
 |**Query**|**sig-type**  <br>*optional*|SigType filters just results using the specified type of signature:<br>* sig - Standard<br>* msig - MultiSig<br>* lsig - LogicSig|enum (sig, msig, lsig)|
-|**Query**|**tx-type**  <br>*optional*||enum (pay, keyreg, acfg, axfer, afrz, appl)|
+|**Query**|**tx-type**  <br>*optional*||enum (pay, keyreg, acfg, axfer, afrz, appl, stpf)|
 |**Query**|**txid**  <br>*optional*|Lookup the specific transaction by ID.|string|
 
 
@@ -1263,6 +1412,8 @@ data/basics/userBalance.go : AccountData
 |**status**  <br>*required*|\[onl\] delegation status of the account's MicroAlgos<br>* Offline - indicates that the associated account is delegated.<br>*  Online  - indicates that the associated account used as part of the delegation pool.<br>*   NotParticipating - indicates that the associated account is neither a delegator nor a delegate.|string|
 |**total-apps-opted-in**  <br>*required*|The count of all applications that have been opted in, equivalent to the count of application local data (AppLocalState objects) stored in this account.|integer|
 |**total-assets-opted-in**  <br>*required*|The count of all assets that have been opted in, equivalent to the count of AssetHolding objects held by this account.|integer|
+|**total-box-bytes**  <br>*required*|For app-accounts only. The total number of bytes allocated for the keys and values of boxes which belong to the associated application.|integer|
+|**total-boxes**  <br>*required*|For app-accounts only. The total number of boxes which belong to the associated application.|integer|
 |**total-created-apps**  <br>*required*|The count of all apps (AppParams objects) created by this account.|integer|
 |**total-created-assets**  <br>*required*|The count of all assets (AssetParams objects) created by this account.|integer|
 
@@ -1433,13 +1584,16 @@ data/bookkeeping/block.go : Block
 |---|---|---|
 |**genesis-hash**  <br>*required*|\[gh\] hash to which this block belongs.  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
 |**genesis-id**  <br>*required*|\[gen\] ID to which this block belongs.|string|
+|**participation-updates**  <br>*optional*||[ParticipationUpdates](#participationupdates)|
 |**previous-block-hash**  <br>*required*|\[prev\] Previous block hash.  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
 |**rewards**  <br>*optional*||[BlockRewards](#blockrewards)|
 |**round**  <br>*required*|\[rnd\] Current round on which this block was appended to the chain.|integer|
 |**seed**  <br>*required*|\[seed\] Sortition seed.  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+|**state-proof-tracking**  <br>*optional*|Tracks the status of state proofs.|< [StateProofTracking](#stateprooftracking) > array|
 |**timestamp**  <br>*required*|\[ts\] Block creation timestamp in seconds since eposh|integer|
 |**transactions**  <br>*optional*|\[txns\] list of transactions corresponding to a given round.|< [Transaction](#transaction) > array|
 |**transactions-root**  <br>*required*|\[txn\] TransactionsRoot authenticates the set of transactions appearing in the block. More specifically, it's the root of a merkle tree whose leaves are the block's Txids, in lexicographic order. For the empty block, it's 0. Note that the TxnRoot does not authenticate the signatures on the transactions, only the transactions themselves. Two blocks with the same transactions but in a different order and with different signatures will have the same TxnRoot.  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+|**transactions-root-sha256**  <br>*required*|\[txn256\] TransactionsRootSHA256 is an auxiliary TransactionRoot, built using a vector commitment instead of a merkle tree, and SHA256 hash function instead of the default SHA512_256. This commitment can be used on environments where only the SHA256 function exists.  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
 |**txn-counter**  <br>*optional*|\[tc\] TxnCounter counts the number of transactions committed in the ledger, from the time at which support for this feature was introduced.<br><br>Specifically, TxnCounter is the number of the next transaction that will be committed after this block.  It is 0 when no transactions have ever been committed (since TxnCounter started being supported).|integer|
 |**upgrade-state**  <br>*optional*||[BlockUpgradeState](#blockupgradestate)|
 |**upgrade-vote**  <br>*optional*||[BlockUpgradeVote](#blockupgradevote)|
@@ -1486,6 +1640,27 @@ Fields relating to voting for a protocol upgrade.
 |**upgrade-propose**  <br>*optional*|\[upgradeprop\] Indicates a proposed upgrade.|string|
 
 
+<a name="box"></a>
+### Box
+Box name and its content.
+
+
+|Name|Description|Schema|
+|---|---|---|
+|**name**  <br>*required*|\[name\] box name, base64 encoded  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+|**value**  <br>*required*|\[value\] box value, base64 encoded.  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+
+
+<a name="boxdescriptor"></a>
+### BoxDescriptor
+Box descriptor describes an app box without a value.
+
+
+|Name|Description|Schema|
+|---|---|---|
+|**name**  <br>*required*|Base64 encoded box name  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+
+
 <a name="evaldelta"></a>
 ### EvalDelta
 Represents a TEAL value delta.
@@ -1507,6 +1682,14 @@ Key-value pairs for StateDelta.
 |---|---|
 |**key**  <br>*required*|string|
 |**value**  <br>*required*|[EvalDelta](#evaldelta)|
+
+
+<a name="hashfactory"></a>
+### HashFactory
+
+|Name|Description|Schema|
+|---|---|---|
+|**hash-type**  <br>*optional*|\[t\]|integer|
 
 
 <a name="hashtype"></a>
@@ -1532,6 +1715,28 @@ A health check response.
 |**message**  <br>*required*||string|
 |**round**  <br>*required*||integer|
 |**version**  <br>*required*|Current version.|string|
+
+
+<a name="indexerstateproofmessage"></a>
+### IndexerStateProofMessage
+
+|Name|Description|Schema|
+|---|---|---|
+|**block-headers-commitment**  <br>*optional*|\[b\]  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+|**first-attested-round**  <br>*optional*|\[f\]|integer|
+|**latest-attested-round**  <br>*optional*|\[l\]|integer|
+|**ln-proven-weight**  <br>*optional*|\[P\]|integer|
+|**voters-commitment**  <br>*optional*|\[v\]  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+
+
+<a name="merklearrayproof"></a>
+### MerkleArrayProof
+
+|Name|Description|Schema|
+|---|---|---|
+|**hash-factory**  <br>*optional*||[HashFactory](#hashfactory)|
+|**path**  <br>*optional*|\[pth\]|< string (byte) > array|
+|**tree-depth**  <br>*optional*|\[td\]|integer|
 
 
 <a name="miniassetholding"></a>
@@ -1565,11 +1770,99 @@ Valid types:
 *Type* : enum (noop, optin, closeout, clear, update, delete)
 
 
+<a name="participationupdates"></a>
+### ParticipationUpdates
+Participation account data that needs to be checked/acted on by the network.
+
+
+|Name|Description|Schema|
+|---|---|---|
+|**expired-participation-accounts**  <br>*optional*|\[partupdrmv\] a list of online accounts that needs to be converted to offline since their participation key expired.|< string > array|
+
+
 <a name="statedelta"></a>
 ### StateDelta
 Application state delta.
 
 *Type* : < [EvalDeltaKeyValue](#evaldeltakeyvalue) > array
+
+
+<a name="stateprooffields"></a>
+### StateProofFields
+\[sp\] represents a state proof.
+
+Definition:
+crypto/stateproof/structs.go : StateProof
+
+
+|Name|Description|Schema|
+|---|---|---|
+|**part-proofs**  <br>*optional*|\[P\]|[MerkleArrayProof](#merklearrayproof)|
+|**positions-to-reveal**  <br>*optional*|\[pr\] Sequence of reveal positions.|< integer > array|
+|**reveals**  <br>*optional*|\[r\] Note that this is actually stored as a map[uint64] - Reveal in the actual msgp|< [StateProofReveal](#stateproofreveal) > array|
+|**salt-version**  <br>*optional*|\[v\] Salt version of the merkle signature.|integer|
+|**sig-commit**  <br>*optional*|\[c\]  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+|**sig-proofs**  <br>*optional*|\[S\]|[MerkleArrayProof](#merklearrayproof)|
+|**signed-weight**  <br>*optional*|\[w\]|integer|
+
+
+<a name="stateproofparticipant"></a>
+### StateProofParticipant
+
+|Name|Description|Schema|
+|---|---|---|
+|**verifier**  <br>*optional*|\[p\]|[StateProofVerifier](#stateproofverifier)|
+|**weight**  <br>*optional*|\[w\]|integer|
+
+
+<a name="stateproofreveal"></a>
+### StateProofReveal
+
+|Name|Description|Schema|
+|---|---|---|
+|**participant**  <br>*optional*|\[p\]|[StateProofParticipant](#stateproofparticipant)|
+|**position**  <br>*optional*|The position in the signature and participants arrays corresponding to this entry.|integer|
+|**sig-slot**  <br>*optional*|\[s\]|[StateProofSigSlot](#stateproofsigslot)|
+
+
+<a name="stateproofsigslot"></a>
+### StateProofSigSlot
+
+|Name|Description|Schema|
+|---|---|---|
+|**lower-sig-weight**  <br>*optional*|\[l\] The total weight of signatures in the lower-numbered slots.|integer|
+|**signature**  <br>*optional*||[StateProofSignature](#stateproofsignature)|
+
+
+<a name="stateproofsignature"></a>
+### StateProofSignature
+
+|Name|Description|Schema|
+|---|---|---|
+|**falcon-signature**  <br>*optional*|**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+|**merkle-array-index**  <br>*optional*||integer|
+|**proof**  <br>*optional*||[MerkleArrayProof](#merklearrayproof)|
+|**verifying-key**  <br>*optional*|\[vkey\]  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+
+
+<a name="stateprooftracking"></a>
+### StateProofTracking
+
+|Name|Description|Schema|
+|---|---|---|
+|**next-round**  <br>*optional*|\[n\] Next round for which we will accept a state proof transaction.|integer|
+|**online-total-weight**  <br>*optional*|\[t\] The total number of microalgos held by the online accounts during the StateProof round.|integer|
+|**type**  <br>*optional*|State Proof Type. Note the raw object uses map with this as key.|integer|
+|**voters-commitment**  <br>*optional*|\[v\] Root of a vector commitment containing online accounts that will help sign the proof.  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+
+
+<a name="stateproofverifier"></a>
+### StateProofVerifier
+
+|Name|Description|Schema|
+|---|---|---|
+|**commitment**  <br>*optional*|\[cmt\] Represents the root of the vector commitment tree.  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+|**key-lifetime**  <br>*optional*|\[lf\] Key lifetime.|integer|
 
 
 <a name="stateschema"></a>
@@ -1656,7 +1949,8 @@ data/transactions/transaction.go : Transaction
 |**sender**  <br>*required*|\[snd\] Sender's address.|string|
 |**sender-rewards**  <br>*optional*|\[rs\] rewards applied to sender account.|integer|
 |**signature**  <br>*optional*||[TransactionSignature](#transactionsignature)|
-|**tx-type**  <br>*required*|\[type\] Indicates what type of transaction this is. Different types have different fields.<br><br>Valid types, and where their fields are stored:<br>* \[pay\] payment-transaction<br>* \[keyreg\] keyreg-transaction<br>* \[acfg\] asset-config-transaction<br>* \[axfer\] asset-transfer-transaction<br>* \[afrz\] asset-freeze-transaction<br>* \[appl\] application-transaction|enum (pay, keyreg, acfg, axfer, afrz, appl)|
+|**state-proof-transaction**  <br>*optional*||[TransactionStateProof](#transactionstateproof)|
+|**tx-type**  <br>*required*|\[type\] Indicates what type of transaction this is. Different types have different fields.<br><br>Valid types, and where their fields are stored:<br>* \[pay\] payment-transaction<br>* \[keyreg\] keyreg-transaction<br>* \[acfg\] asset-config-transaction<br>* \[axfer\] asset-transfer-transaction<br>* \[afrz\] asset-freeze-transaction<br>* \[appl\] application-transaction<br>* \[stpf\] state-proof-transaction|enum (pay, keyreg, acfg, axfer, afrz, appl, stpf)|
 
 
 <a name="transactionapplication"></a>
@@ -1818,6 +2112,21 @@ crypto/multisig.go : MultisigSig
 |---|---|---|
 |**public-key**  <br>*optional*|\[pk\]  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
 |**signature**  <br>*optional*|\[s\]  <br>**Pattern** : `"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==\|[A-Za-z0-9+/]{3}=)?$"`|string (byte)|
+
+
+<a name="transactionstateproof"></a>
+### TransactionStateProof
+Fields for a state proof transaction. 
+
+Definition:
+data/transactions/stateproof.go : StateProofTxnFields
+
+
+|Name|Description|Schema|
+|---|---|---|
+|**message**  <br>*optional*|\[spmsg\]|[IndexerStateProofMessage](#indexerstateproofmessage)|
+|**state-proof**  <br>*optional*||[StateProofFields](#stateprooffields)|
+|**state-proof-type**  <br>*optional*|\[sptype\] Type of the state proof. Integer representing an entry defined in protocol/stateproof.go|integer|
 
 
 
