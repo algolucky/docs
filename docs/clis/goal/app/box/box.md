@@ -1,24 +1,16 @@
-title: goal app read
+title: goal app box
 ---
-## goal app read
+## goal app box
 
 
 
-Read local or global state for an application
-
-
-
-### Synopsis
-
-
-
-Read global or local (account-specific) state for an application
+Read application box data
 
 
 
 ```
 
-goal app read [flags]
+goal app box [flags]
 
 ```
 
@@ -30,17 +22,9 @@ goal app read [flags]
 
 ```
 
-      --app-id uint    Application ID
+      --app-id uint   Application ID
 
-  -f, --from string    Account to fetch state from
-
-      --global         Fetch global state for this application.
-
-      --guess-format   Format application state using heuristics to guess data encoding.
-
-  -h, --help           help for read
-
-      --local --from   Fetch account-specific state for this application. --from address is required when using this flag
+  -h, --help          help for box
 
 ```
 
@@ -86,7 +70,9 @@ goal app read [flags]
 
 
 
-* [goal app](../../app/app/)	 - Manage applications
+* [goal app](../../../app/app/)	 - Manage applications
+* [goal app box info](../info/)	 - Retrieve information about an application box.
+* [goal app box list](../list/)	 - List all application boxes belonging to an application
 
 
 
